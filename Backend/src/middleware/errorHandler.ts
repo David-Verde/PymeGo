@@ -1,105 +1,83 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { config } from '../config/config';
-import { User } from '../models/User';
-import { Business } from '../models/Business';
-import { IJwtPayload } from '../types';
+import { Error as MongooseError } from 'mongoose';
+import { isDevelopment } from '../config/config';
+import { IApiResponse } from '../types';
 
-export const authenticate = async (
+interface CustomError extends Error {
+  statusCode?: number;
+  code?: number;
+  path?: string;
+  value?: any;
+  keyValue?: Record<string, any>;
+}
+
+export const errorHandler = (
+  error: CustomError,
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
-  try {
-    const authHeader = req.header('Authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        message: 'Access denied. No token provided.'
-      });
-      return;
-    }
+): void => {
+  let statusCode = error.statusCode || 500;
+  let message = error.message || 'Internal Server Error';
 
-    const token = authHeader.substring(7);
-    
-    const decoded = jwt.verify(token, config.jwt.secret) as IJwtPayload;
-    
-    // Verify user still exists
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Token is no longer valid.'
-      });
-      return;
-    }
+  // Log error for debugging
+  console.error('Error:', {
+    message: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+  });
 
-    // Verify business still exists
-    const business = await Business.findById(decoded.businessId);
-    if (!business) {
-      res.status(401).json({
-        success: false,
-        message: 'Business no longer exists.'
-      });
-      return;
-    }
-
-    // Add user info to request
-    req.user = {
-      userId: decoded.userId,
-      businessId: decoded.businessId,
-      email: decoded.email,
-    };
-
-    next();
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({
-        success: false,
-        message: 'Token expired.'
-      });
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid token.'
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: 'Server error during authentication.'
-      });
-    }
+  // MongoDB/Mongoose errors
+  if (error instanceof MongooseError.ValidationError) {
+    statusCode = 400;
+    const errors = Object.values(error.errors).map(err => err.message);
+    message = `Validation Error: ${errors.join(', ')}`;
+  } else if (error instanceof MongooseError.CastError) {
+    statusCode = 400;
+    message = `Invalid ${error.path}: ${error.value}`;
+  } else if (error.code === 11000) {
+    // Duplicate key error
+    statusCode = 400;
+    const field = Object.keys(error.keyValue || {})[0];
+    message = `Duplicate value for ${field}. Please use another value.`;
   }
+
+  // JWT errors
+  if (error.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    message = 'Invalid token';
+  } else if (error.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Token expired';
+  }
+
+  const response: IApiResponse = {
+    success: false,
+    message,
+    error: isDevelopment ? error.stack : undefined,
+  };
+
+  res.status(statusCode).json(response);
 };
 
-export const optionalAuth = async (
+export const notFoundHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
-  try {
-    const authHeader = req.header('Authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
+): void => {
+  const response: IApiResponse = {
+    success: false,
+    message: `Route ${req.originalUrl} not found`,
+  };
 
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, config.jwt.secret) as IJwtPayload;
-    
-    const user = await User.findById(decoded.userId);
-    if (user) {
-      req.user = {
-        userId: decoded.userId,
-        businessId: decoded.businessId,
-        email: decoded.email,
-      };
-    }
+  res.status(404).json(response);
+};
 
-    next();
-  } catch (error) {
-    // Continue without authentication for optional auth
-    next();
-  }
+export const asyncHandler = (fn: Function) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 };

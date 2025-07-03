@@ -1,3 +1,140 @@
+
+import { Request, Response } from 'express';
+import { Transaction } from '../models/Transaction';
+import { Product } from '../models/Product';
+import { asyncHandler } from '../middleware/errorHandler';
+import { 
+  IApiResponse, 
+  ICreateTransactionRequest, 
+  IPagination, 
+  TransactionType,
+  ITransactionProduct 
+} from '../types';
+
+export const createTransaction = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const businessId = req.user?.businessId;
+  const transactionData: ICreateTransactionRequest = req.body;
+
+  // If transaction has products, validate and update stock
+  if (transactionData.products && transactionData.products.length > 0) {
+    for (const productData of transactionData.products) {
+      const product = await Product.findOne({ 
+        _id: productData.productId, 
+        businessId 
+      });
+
+      if (!product) {
+        res.status(404).json({
+          success: false,
+          message: `Product with ID ${productData.productId} not found`,
+        });
+        return;
+      }
+
+      // For sales, reduce stock
+      if (transactionData.type === TransactionType.INCOME) {
+        if (product.stockQuantity < productData.quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Insufficient stock for product ${product.name}`,
+          });
+          return;
+        }
+        product.stockQuantity -= productData.quantity;
+        await product.save();
+      }
+    }
+  }
+
+  const transaction = await Transaction.create({
+    ...transactionData,
+    businessId,
+  });
+
+  const populatedTransaction = await Transaction.findById(transaction._id)
+    .populate('products.productId', 'name sku');
+
+  const response: IApiResponse = {
+    success: true,
+    message: 'Transaction created successfully',
+    data: populatedTransaction,
+  };
+
+  res.status(201).json(response);
+});
+
+export const getTransactions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const businessId = req.user?.businessId;
+  const { 
+    page = 1, 
+    limit = 10, 
+    type,
+    category,
+    paymentMethod,
+    startDate,
+    endDate,
+    sortBy = 'date',
+    sortOrder = 'desc'
+  } = req.query;
+
+  const pageNum = parseInt(page as string);
+  const limitNum = parseInt(limit as string);
+  const skip = (pageNum - 1) * limitNum;
+
+  // Build query
+  const query: any = { businessId };
+  
+  if (type) {
+    query.type = type;
+  }
+  
+  if (category) {
+    query.category = category;
+  }
+  
+  if (paymentMethod) {
+    query.paymentMethod = paymentMethod;
+  }
+  
+  if (startDate || endDate) {
+    query.date = {};
+    if (startDate) {
+      query.date.$gte = new Date(startDate as string);
+    }
+    if (endDate) {
+      query.date.$lte = new Date(endDate as string);
+    }
+  }
+
+  // Build sort
+  const sort: any = {};
+  sort[sortBy as string] = sortOrder === 'desc' ? -1 : 1;
+
+  const [transactions, total] = await Promise.all([
+    Transaction.find(query)
+      .populate('products.productId', 'name sku')
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum),
+    Transaction.countDocuments(query),
+  ]);
+
+  const pagination: IPagination = {
+    page: pageNum,
+    limit: limitNum,
+    total,
+    pages: Math.ceil(total / limitNum),
+  };
+
+  const response: IApiResponse = {
+    success: true,
+    data: transactions,
+    pagination,
+  };
+
+  res.status(200).json(response);
+});
+
 export const getTransaction = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const businessId = req.user?.businessId;
   const { id } = req.params;

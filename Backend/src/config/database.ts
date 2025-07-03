@@ -21,20 +21,18 @@ class Database {
     }
 
     try {
-      const options = {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-        bufferCommands: false,
-        bufferMaxEntries: 0,
-      };
+const options = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 30000,
+  connectTimeoutMS: 10000
+};
 
       await mongoose.connect(config.database.uri, options);
       
       this.isConnected = true;
       console.log('✅ Database connected successfully');
 
-      // Handle connection events
       mongoose.connection.on('error', (error) => {
         console.error('❌ Database connection error:', error);
         this.isConnected = false;
