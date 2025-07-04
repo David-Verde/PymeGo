@@ -1,8 +1,8 @@
-
 import { Request, Response } from 'express';
 import { Transaction } from '../models/Transaction';
 import { Product } from '../models/Product';
 import { asyncHandler } from '../middleware/errorHandler';
+import mongoose from 'mongoose'; // Importación añadida
 import { 
   IApiResponse, 
   ICreateTransactionRequest, 
@@ -15,7 +15,6 @@ export const createTransaction = asyncHandler(async (req: Request, res: Response
   const businessId = req.user?.businessId;
   const transactionData: ICreateTransactionRequest = req.body;
 
-  // If transaction has products, validate and update stock
   if (transactionData.products && transactionData.products.length > 0) {
     for (const productData of transactionData.products) {
       const product = await Product.findOne({ 
@@ -31,7 +30,6 @@ export const createTransaction = asyncHandler(async (req: Request, res: Response
         return;
       }
 
-      // For sales, reduce stock
       if (transactionData.type === TransactionType.INCOME) {
         if (product.stockQuantity < productData.quantity) {
           res.status(400).json({
@@ -81,7 +79,6 @@ export const getTransactions = asyncHandler(async (req: Request, res: Response):
   const limitNum = parseInt(limit as string);
   const skip = (pageNum - 1) * limitNum;
 
-  // Build query
   const query: any = { businessId };
   
   if (type) {
@@ -106,7 +103,6 @@ export const getTransactions = asyncHandler(async (req: Request, res: Response):
     }
   }
 
-  // Build sort
   const sort: any = {};
   sort[sortBy as string] = sortOrder === 'desc' ? -1 : 1;
 
@@ -200,7 +196,6 @@ export const deleteTransaction = asyncHandler(async (req: Request, res: Response
     return;
   }
 
-  // If it was a sale, restore stock
   if (transaction.type === TransactionType.INCOME && transaction.products) {
     for (const productData of transaction.products) {
       const product = await Product.findOne({ 
@@ -243,20 +238,18 @@ export const getTransactionCategories = asyncHandler(async (req: Request, res: R
 });
 
 export const getFinancialSummary = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
   const { startDate, endDate } = req.query;
 
-  const dateFilter: any = {};
-  if (startDate) dateFilter.$gte = new Date(startDate as string);
-  if (endDate) dateFilter.$lte = new Date(endDate as string);
-
-  const matchQuery: any = { businessId };
+  const dateFilter: any = { businessId }; // Ahora businessId es ObjectId
   if (startDate || endDate) {
-    matchQuery.date = dateFilter;
+    dateFilter.date = {};
+    if (startDate) dateFilter.date.$gte = new Date(startDate as string);
+    if (endDate) dateFilter.date.$lte = new Date(endDate as string);
   }
 
   const result = await Transaction.aggregate([
-    { $match: matchQuery },
+    { $match: dateFilter },
     {
       $group: {
         _id: null,
@@ -315,10 +308,10 @@ export const getFinancialSummary = asyncHandler(async (req: Request, res: Respon
 });
 
 export const getSalesTrends = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
   const { period = 'monthly', startDate, endDate } = req.query;
 
-  const dateFilter: any = { businessId, type: TransactionType.INCOME };
+  const dateFilter: any = { businessId, type: TransactionType.INCOME }; // Ahora businessId es ObjectId
   if (startDate || endDate) {
     dateFilter.date = {};
     if (startDate) dateFilter.date.$gte = new Date(startDate as string);

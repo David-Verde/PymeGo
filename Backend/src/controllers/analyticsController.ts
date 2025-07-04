@@ -2,14 +2,15 @@ import { Request, Response } from 'express';
 import { Transaction } from '../models/Transaction';
 import { Product } from '../models/Product';
 import { asyncHandler } from '../middleware/errorHandler';
+import mongoose from 'mongoose'; // Importación añadida
 import { IApiResponse, TransactionType } from '../types';
 
 export const getExpenseAnalysis = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
   const { startDate, endDate } = req.query;
 
   const dateFilter: any = { 
-    businessId, 
+    businessId, // Ahora es ObjectId
     type: TransactionType.EXPENSE 
   };
   
@@ -47,13 +48,13 @@ export const getExpenseAnalysis = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getProductPerformance = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
   const { startDate, endDate } = req.query;
 
   const dateFilter: any = { 
-    businessId, 
+    businessId, // Ahora es ObjectId
     type: TransactionType.INCOME,
-    "products.0": { $exists: true } // Only transactions with products
+    "products.0": { $exists: true }
   };
   
   if (startDate || endDate) {
@@ -118,10 +119,10 @@ export const getProductPerformance = asyncHandler(async (req: Request, res: Resp
 });
 
 export const getCashFlow = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
   const { period = 'monthly', startDate, endDate } = req.query;
 
-  const dateFilter: any = { businessId };
+  const dateFilter: any = { businessId }; // Ahora es ObjectId
   if (startDate || endDate) {
     dateFilter.date = {};
     if (startDate) dateFilter.date.$gte = new Date(startDate as string);
@@ -198,7 +199,7 @@ export const getCashFlow = asyncHandler(async (req: Request, res: Response): Pro
   ]);
 
   const formattedData = cashFlowData.map(item => ({
-    date: formatDate(item.period, period),
+    date: formatDate(item.period, period as string),
     income: item.income,
     expenses: item.expenses,
     withdrawals: item.withdrawals,

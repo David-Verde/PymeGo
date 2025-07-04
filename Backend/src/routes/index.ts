@@ -108,12 +108,16 @@ router.post('/transactions',
 );
 
 router.get('/transactions', authenticate, getTransactions);
+
+// Rutas específicas de transacciones primero
+router.get('/transactions/summary', authenticate, getFinancialSummary);
+router.get('/transactions/sales-trends', authenticate, getSalesTrends);
+router.get('/transactions/categories', authenticate, getTransactionCategories);
+
+// Rutas genéricas de transacciones después
 router.get('/transactions/:id', authenticate, getTransaction);
 router.put('/transactions/:id', authenticate, updateTransaction);
 router.delete('/transactions/:id', authenticate, deleteTransaction);
-router.get('/transactions/categories', authenticate, getTransactionCategories);
-router.get('/transactions/summary', authenticate, getFinancialSummary);
-router.get('/transactions/sales-trends', authenticate, getSalesTrends);
 
 // Analytics Routes
 router.get('/analytics/expenses', authenticate, getExpenseAnalysis);
