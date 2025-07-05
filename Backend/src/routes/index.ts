@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Express, Router as RouterType } from 'express';
 import { 
   register, 
   login, 
@@ -36,7 +37,7 @@ import { generalLimiter, authLimiter } from '../middleware/rateLimit';
 import { validate } from '../middleware/validation';
 import { body } from 'express-validator';
 
-const router = Router();
+const router: RouterType = Router();
 
 // Auth Routes
 router.post('/auth/register', 

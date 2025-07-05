@@ -186,7 +186,7 @@ export const deleteTransaction = asyncHandler(async (req: Request, res: Response
   const businessId = req.user?.businessId;
   const { id } = req.params;
 
-  const transaction = await Transaction.findOneAndDelete({ _id: id, businessId });
+  const transaction = await Transaction.findOneAndDelete({ _id: id, businessId }).lean();
 
   if (!transaction) {
     res.status(404).json({
@@ -308,10 +308,16 @@ export const getFinancialSummary = asyncHandler(async (req: Request, res: Respon
 });
 
 export const getSalesTrends = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = new mongoose.Types.ObjectId(req.user?.businessId); // Convertido a ObjectId
-  const { period = 'monthly', startDate, endDate } = req.query;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId);
+  const { startDate, endDate } = req.query;
+  
+  // Validación segura del parámetro period
+  const period = (
+    typeof req.query.period === 'string' && 
+    ['daily', 'weekly', 'monthly'].includes(req.query.period)
+  ) ? req.query.period : 'monthly';
 
-  const dateFilter: any = { businessId, type: TransactionType.INCOME }; // Ahora businessId es ObjectId
+  const dateFilter: any = { businessId, type: TransactionType.INCOME };
   if (startDate || endDate) {
     dateFilter.date = {};
     if (startDate) dateFilter.date.$gte = new Date(startDate as string);

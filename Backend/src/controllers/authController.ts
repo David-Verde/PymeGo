@@ -7,9 +7,13 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { IApiResponse, IAuthRequest, IRegisterRequest, IJwtPayload } from '../types';
 
 const generateToken = (payload: Omit<IJwtPayload, 'iat' | 'exp'>): string => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
-  });
+  return jwt.sign(
+    payload as object,  // Asegurar que payload sea tratado como object
+    config.jwt.secret,  // Esto debería ser string | Buffer
+    {
+      expiresIn: config.jwt.expiresIn  // Esto debería ser string | number
+    } as jwt.SignOptions  // Asegurar que las opciones sean del tipo correcto
+  );
 };
 
 export const register = asyncHandler(async (req: Request, res: Response): Promise<void> => {

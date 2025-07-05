@@ -15,7 +15,7 @@ class Server {
 
   constructor() {
     this.app = express();
-    this.port = config.server.port;
+    this.port = Number(process.env.PORT) || config.server.port; // Usa process.env.PORT o el valor de config
 
     this.initializeDatabase();
     this.initializeMiddlewares();
@@ -23,10 +23,26 @@ class Server {
   }
 
   private async initializeDatabase(): Promise<void> {
-    await Database.getInstance().connect();
+    try {
+      await Database.getInstance().connect();
+      console.log('✅ Database connection established');
+    } catch (error) {
+      console.error('❌ Failed to connect to database:', error);
+      process.exit(1); // Termina la aplicación si no puede conectar a la DB
+    }
   }
 
   private initializeMiddlewares(): void {
+    // Force HTTPS in production
+    if (config.server.environment === 'production') {
+      this.app.use((req, res, next) => {
+        if (req.headers['x-forwarded-proto'] !== 'https') {
+          return res.redirect(`https://${req.headers.host}${req.url}`);
+        }
+        return next();
+      });
+    }
+
     // Security
     this.app.use(helmet());
     this.app.use(cors({
@@ -37,9 +53,9 @@ class Server {
     // Rate limiting
     this.app.use(generalLimiter);
 
-    // Request parsing
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    // Request parsing with size limits
+    this.app.use(express.json({ limit: process.env.MAX_FILE_SIZE || '5mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: process.env.MAX_FILE_SIZE || '5mb' }));
 
     // Compression
     this.app.use(compression());
@@ -59,25 +75,45 @@ class Server {
       res.status(200).json({
         status: 'UP',
         timestamp: new Date().toISOString(),
-        database: Database.getInstance().isConnectionActive() ? 'CONNECTED' : 'DISCONNECTED'
+        database: Database.getInstance().isConnectionActive() ? 'CONNECTED' : 'DISCONNECTED',
+        environment: config.server.environment,
+        port: this.port
       });
     });
 
-    // 404 Handler (debe ir después de todas las rutas)
+    // 404 Handler
     this.app.use(notFoundHandler);
 
-    // Error handler (debe ir al final)
+    // Error handler
     this.app.use(errorHandler);
   }
 
   public start(): void {
-    this.app.listen(this.port, () => {
-      console.log(`🚀 Server running on port ${this.port}`);
-      console.log(`🌍 Environment: ${config.server.environment}`);
+    const server = this.app.listen(this.port, () => {
+      console.log(`
+        🚀 Server running on port ${this.port}
+        🌍 Environment: ${config.server.environment}
+        🔄 CORS Origin: ${config.cors.origin}
+        🕒 Started at: ${new Date().toISOString()}
+      `);
+    });
+
+    server.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${this.port} is already in use`);
+      } else {
+        console.error('❌ Server error:', error);
+      }
+      process.exit(1);
+    });
+
+    server.on('listening', () => {
+      console.log('✅ Server is ready to accept connections');
     });
   }
 }
 
+// Iniciar servidor
 const server = new Server();
 server.start();
 
@@ -92,4 +128,13 @@ process.on('SIGTERM', async () => {
   console.log('🛑 Received SIGTERM. Shutting down gracefully...');
   await Database.getInstance().disconnect();
   process.exit(0);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Uncaught Exception:', error);
+  process.exit(1);
 });
