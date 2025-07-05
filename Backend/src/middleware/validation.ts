@@ -53,6 +53,7 @@ export const authenticate = async (
       userId: decoded.userId,
       businessId: decoded.businessId,
       email: decoded.email,
+      isAdmin: decoded.isAdmin
     };
 
     next();
@@ -97,6 +98,7 @@ export const optionalAuth = async (
         userId: decoded.userId,
         businessId: decoded.businessId,
         email: decoded.email,
+        isAdmin: decoded.isAdmin
       };
     }
 
@@ -151,13 +153,17 @@ export const handleValidationErrors = (
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
+    const formattedErrors = errors.array().map(error => ({
+      field: error.type === 'field' ? error.path : 'unknown',
+      message: error.msg,
+      value: error.type === 'field' ? error.value : undefined,
+    }));
+
     const response: IApiResponse = {
       success: false,
       message: 'Validation failed',
-      error: errors.array().map(error => 
-        `${error.type === 'field' ? error.path : 'field'}: ${error.msg}`
-      ).join(', '),
-      validationErrors: errors.array(),
+      error: formattedErrors.map(err => `${err.field}: ${err.message}`).join(', '),
+      validationErrors: formattedErrors,
     };
 
     res.status(400).json(response);

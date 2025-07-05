@@ -5,6 +5,7 @@ export interface IUser extends Document {
   _id: ObjectId;
   email: string;
   password: string;
+    isAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -141,7 +142,11 @@ export interface IProductPerformance {
   revenue: number;
   profit: number;
 }
-
+export interface IValidationError {
+  field: string;
+  message: string;
+  value?: any;
+}
 // API Response Types
 export interface IApiResponse<T = any> {
   success: boolean;
@@ -149,6 +154,7 @@ export interface IApiResponse<T = any> {
   message?: string;
   error?: string;
   pagination?: IPagination;
+  validationErrors?: IValidationError[];
 }
 
 export interface IPagination {
@@ -205,6 +211,7 @@ export interface IJwtPayload {
   userId: string;
   businessId: string;
   email: string;
+    isAdmin: boolean;
   iat: number;
   exp: number;
 }
@@ -214,6 +221,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
+        isAdmin: any;
         userId: string;
         businessId: string;
         email: string;

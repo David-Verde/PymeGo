@@ -50,6 +50,7 @@ export const authenticate = async (
       userId: decoded.userId,
       businessId: decoded.businessId,
       email: decoded.email,
+      isAdmin: decoded.isAdmin
     };
 
     next();
@@ -94,6 +95,7 @@ export const optionalAuth = async (
         userId: decoded.userId,
         businessId: decoded.businessId,
         email: decoded.email,
+        isAdmin: decoded.isAdmin
       };
     }
 

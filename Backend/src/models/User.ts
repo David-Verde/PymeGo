@@ -19,7 +19,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters long'],
-      select: false, // Don't include password in queries by default
+      select: false,
+    },
+    isAdmin: {  // <-- Añade este campo
+      type: Boolean,
+      default: false,  // Por defecto, los usuarios no son administradores
     },
   },
   {

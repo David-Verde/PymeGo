@@ -46,6 +46,8 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     userId: user._id.toString(),
     businessId: business._id.toString(),
     email: user.email,
+      isAdmin: user.isAdmin,
+    
   });
 
   const response: IApiResponse = {
@@ -110,6 +112,7 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
     userId: user._id.toString(),
     businessId: business._id.toString(),
     email: user.email,
+      isAdmin: user.isAdmin
   });
 
   const response: IApiResponse = {
@@ -213,6 +216,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response): Pr
   const userId = req.user?.userId;
   const businessId = req.user?.businessId;
   const email = req.user?.email;
+    const isAdmin = req.user?.isAdmin;
 
   if (!userId || !businessId || !email) {
     res.status(401).json({
@@ -226,6 +230,8 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response): Pr
     userId,
     businessId,
     email,
+       isAdmin: isAdmin || false
+
   });
 
   const response: IApiResponse = {
