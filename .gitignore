@@ -1,0 +1,12 @@
+# Archivos y directorios a ignorar
+node_modules/
+.DS_Store
+dist/
+build/
+.env
+.env.local
+*.log
+.idea/
+.vscode/
+*.tmp
+*.temp

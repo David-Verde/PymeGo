@@ -63,7 +63,8 @@ export interface IExpenseAnalysis {
 
 
 export interface IProduct {
-  id: string;
+id?: string;
+    _id?: string;
   name: string;
   description?: string;
   category: string;

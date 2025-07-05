@@ -107,7 +107,7 @@ export default function TransactionsPage() {
       if (name && (name.startsWith('products') || name === 'type')) {
         if (value.type === TransactionType.INCOME) {
           form.setValue('category', 'Venta de Productos', { shouldValidate: true });
-          const total = calculateTotalAmount(value.products || []);
+const total = calculateTotalAmount((value.products || []).filter(p => p?.productId && p?.quantity) as { productId: string; quantity: number }[]);
           form.setValue('amount', total, { shouldValidate: true });
         } else if (value.type === TransactionType.WITHDRAWAL) {
           form.setValue('category', 'Retiro Personal', { shouldValidate: true });
@@ -216,9 +216,9 @@ export default function TransactionsPage() {
                               <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar producto..." /></SelectTrigger></FormControl>
                               <SelectContent>
                                 {availableProducts.map(p => (
-                                  <SelectItem key={p._id} value={p._id}>
-                                    {p.name} - ${p.salePrice.toFixed(2)}
-                                  </SelectItem>
+                                 <SelectItem key={p._id} value={p._id as string}>
+  {p.name} - ${p.salePrice.toFixed(2)}
+</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -296,7 +296,7 @@ export default function TransactionsPage() {
                           <SelectItem value={PaymentMethod.CASH}>Efectivo</SelectItem>
                           <SelectItem value={PaymentMethod.CREDIT_CARD}>Tarjeta de Crédito</SelectItem>
                           <SelectItem value={PaymentMethod.DEBIT_CARD}>Tarjeta de Débito</SelectItem>
-                          <SelectItem value={PaymentMethod.TRANSFER}>Transferencia</SelectItem>
+                         <SelectItem value={PaymentMethod.BANK_TRANSFER}>Transferencia</SelectItem>
                           <SelectItem value={PaymentMethod.OTHER}>Otro</SelectItem>
                         </SelectContent>
                       </Select>

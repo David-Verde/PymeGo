@@ -1,0 +1,40 @@
+{
+  "name": "pymego",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:backend": "eslint Backend/",
+    "lint:front": "eslint front/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/David-Verde/PymeGo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/David-Verde/PymeGo/issues"
+  },
+  "homepage": "https://github.com/David-Verde/PymeGo#readme",
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.30.1",
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "eslint": "^9.30.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react"
+      ]
+    }
+  }
+}

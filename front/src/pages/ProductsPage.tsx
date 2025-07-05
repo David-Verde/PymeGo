@@ -74,24 +74,24 @@ export default function ProductsPage() {
     }
   }, [editingProduct, isDialogOpen, form]);
 
-  const fetchProducts = async (page = 1) => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get<IApiResponse<{ data: IProduct[], pagination: IPagination }>>(
-        `/products?page=${page}&limit=10`
-      );
-      
-      if (response.data.success) {
-        setProducts(response.data.data || []);
-        setPagination(response.data.pagination || null);
-        setCurrentPage(page);
-      }
-    } catch (error) {
-      toast.error('No se pudieron cargar los productos');
-    } finally {
-      setLoading(false);
+const fetchProducts = async (page = 1) => {
+  setLoading(true);
+  try {
+    const response = await apiClient.get<IApiResponse<IProduct[]>>(
+      `/products?page=${page}&limit=10`
+    );
+    
+    if (response.data.success) {
+      setProducts(response.data.data || []);
+      setPagination(response.data.pagination || null);
+      setCurrentPage(page);
     }
-  };
+  } catch (error) {
+    toast.error('No se pudieron cargar los productos');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchProducts();
@@ -245,7 +245,7 @@ export default function ProductsPage() {
                 <DialogFooter>
                   <Button type="submit" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting ? (
-                      <LoadingSpinner className="mr-2" />
+                      <LoadingSpinner />
                     ) : editingProduct ? (
                       'Actualizar Producto'
                     ) : (
@@ -312,10 +312,10 @@ export default function ProductsPage() {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-600"
-                                  onClick={() => handleDelete(product._id)}
-                                >
+                             <DropdownMenuItem
+  className="text-red-600"
+  onClick={() => product._id && handleDelete(product._id)}
+>
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Eliminar
                                 </DropdownMenuItem>

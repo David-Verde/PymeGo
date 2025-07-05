@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
 import TransactionsPage from './pages/TransactionsPage';
 import { Toaster } from "@/components/ui/toaster"
+import type { JSX } from 'react';
 
 // Componente para proteger rutas que requieren autenticación
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
