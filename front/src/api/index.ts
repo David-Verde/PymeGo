@@ -1,14 +1,20 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+// Configuración dinámica de la URL base
+const isProduction = window.location.hostname !== 'localhost';
+const baseURL = isProduction
+  ? 'https://pymego-backend.onrender.com/api'  // URL de producción (Render)
+  : 'http://localhost:3000/api';               // URL de desarrollo (local)
+
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api', // La URL de tu backend
+  baseURL, // Usa la URL condicional
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor para añadir el token de autenticación a cada petición
+// Interceptor para añadir el token de autenticación
 apiClient.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
@@ -21,6 +27,8 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Interceptor para manejar errores 401 (no autorizado)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,4 +39,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 export default apiClient;
