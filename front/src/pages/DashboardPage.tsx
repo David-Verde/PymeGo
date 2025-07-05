@@ -3,7 +3,7 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import apiClient from '@/api';
 import type { IFinancialSummary, ISalesTrend, IExpenseAnalysis } from '@/types';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { toast } from 'sonner';
