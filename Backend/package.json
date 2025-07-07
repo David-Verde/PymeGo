@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "seed": "ts-node src/seed.ts"
   },
   "keywords": [
     "financial",
