@@ -4,10 +4,11 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "dev": "ts-node-dev src/server.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "lint:backend": "eslint Backend/",
-    "lint:front": "eslint front/"
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
