@@ -1,20 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
-// Configuración dinámica de la URL base
-const isProduction = window.location.hostname !== 'localhost';
-const baseURL = isProduction
-  ? 'https://pymego-backend.onrender.com/api' 
-  : 'http://localhost:3000/api';               
-
 const apiClient = axios.create({
-  baseURL, // Usa la URL condicional
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-
 
 // Interceptor para añadir el token de autenticación
 apiClient.interceptors.request.use(
