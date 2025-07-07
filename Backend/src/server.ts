@@ -15,7 +15,7 @@ class Server {
 
   constructor() {
     this.app = express();
-    this.port = Number(process.env.PORT) || config.server.port; // Usa process.env.PORT o el valor de config
+    this.port = Number(process.env.PORT) || config.server.port;
 
     this.initializeDatabase();
     this.initializeMiddlewares();
@@ -28,11 +28,17 @@ class Server {
       console.log('✅ Database connection established');
     } catch (error) {
       console.error('❌ Failed to connect to database:', error);
-      process.exit(1); // Termina la aplicación si no puede conectar a la DB
+      process.exit(1);
     }
   }
 
   private initializeMiddlewares(): void {
+    // Keep-alive para todas las respuestas
+    this.app.use((req, res, next) => {
+      res.set('Connection', 'keep-alive');
+      next();
+    });
+
     // Force HTTPS in production
     if (config.server.environment === 'production') {
       this.app.use((req, res, next) => {
@@ -70,14 +76,19 @@ class Server {
     // API Routes
     this.app.use('/api', router);
 
-    // Health check endpoint
+    // Health check endpoint mejorado
     this.app.get('/health', (req, res) => {
+      res.set('Connection', 'keep-alive');
       res.status(200).json({
         status: 'UP',
         timestamp: new Date().toISOString(),
         database: Database.getInstance().isConnectionActive() ? 'CONNECTED' : 'DISCONNECTED',
         environment: config.server.environment,
-        port: this.port
+        port: this.port,
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime(),
+        nodeVersion: process.version,
+        lastCronPing: new Date().toISOString() // Útil para verificar pings automáticos
       });
     });
 
@@ -95,6 +106,7 @@ class Server {
         🌍 Environment: ${config.server.environment}
         🔄 CORS Origin: ${config.cors.origin}
         🕒 Started at: ${new Date().toISOString()}
+        💡 Keep-alive enabled: true
       `);
     });
 
@@ -109,6 +121,7 @@ class Server {
 
     server.on('listening', () => {
       console.log('✅ Server is ready to accept connections');
+      console.log('💡 Remember to setup external pings to /health endpoint');
     });
   }
 }
