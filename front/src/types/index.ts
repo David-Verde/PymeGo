@@ -21,6 +21,7 @@ export interface IBusiness {
   category: string;
   currency: string;
   timezone: string;
+  logoUrl?: string;
   settings: IBusinessSettings;
   createdAt: string;
 }

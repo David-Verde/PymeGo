@@ -25,6 +25,13 @@ const formSchema = z.object({
     currency: z.string().min(1, { message: 'La moneda es requerida (ej. USD, MXN).' }).toUpperCase(),
     timezone: z.string().min(1, { message: 'La zona horaria es requerida (ej. America/Mexico_City).' }),
   }),
+  logo: z.any() // Aceptamos cualquier tipo de archivo, validaremos manualmente
+    .refine((files) => files?.length == 1, 'La imagen del logo es requerida.')
+    .refine((files) => files?.[0]?.size <= 5000000, `El tamaño máximo es 5MB.`)
+    .refine(
+      (files) => ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      'Solo se aceptan formatos .jpg, .png y .webp.'
+    ),
 });
 
 export default function RegisterPage() {
@@ -42,17 +49,39 @@ export default function RegisterPage() {
         currency: 'USD',
         timezone: 'America/New_York',
       },
+      logo: undefined,
     },
   });
 
+  const fileRef = form.register("logo"); // Para manejar el input de archivo
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const formData = new FormData();
+
+    // Añadir campos de texto
+    formData.append('email', values.email);
+    formData.append('password', values.password);
+    // Enviar los campos del negocio por separado
+    formData.append('business[name]', values.business.name);
+    formData.append('business[category]', values.business.category);
+    formData.append('business[currency]', values.business.currency);
+    formData.append('business[timezone]', values.business.timezone);
+
+    // Añadir el archivo
+    if (values.logo && values.logo.length > 0) {
+      formData.append('logo', values.logo[0]);
+    }
+    
     try {
-      const response = await apiClient.post('/auth/register', values);
+      // Hacemos la petición con el header correcto para FormData
+      const response = await apiClient.post('/auth/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
       if (response.data.success) {
         toast.success("¡Registro Exitoso!", {
           description: "Bienvenido. Redirigiendo a tu dashboard...",
         });
-        // Hacemos login automático después del registro
         setAuth(response.data.data);
         navigate('/');
       }
@@ -172,6 +201,19 @@ export default function RegisterPage() {
                     )}
                     />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="logo"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Logo del Negocio</FormLabel>
+                      <FormControl>
+                        <Input type="file" {...fileRef} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>

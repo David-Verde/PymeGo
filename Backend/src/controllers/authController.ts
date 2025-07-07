@@ -5,14 +5,15 @@ import { Business } from '../models/Business';
 import { config } from '../config/config';
 import { asyncHandler } from '../middleware/errorHandler';
 import { IApiResponse, IAuthRequest, IRegisterRequest, IJwtPayload } from '../types';
+import { uploadToCloudinary } from '../middleware/upload';
 
 const generateToken = (payload: Omit<IJwtPayload, 'iat' | 'exp'>): string => {
   return jwt.sign(
-    payload as object,  // Asegurar que payload sea tratado como object
-    config.jwt.secret,  // Esto debería ser string | Buffer
+    payload as object,
+    config.jwt.secret,
     {
-      expiresIn: config.jwt.expiresIn  // Esto debería ser string | number
-    } as jwt.SignOptions  // Asegurar que las opciones sean del tipo correcto
+      expiresIn: config.jwt.expiresIn
+    } as jwt.SignOptions
   );
 };
 
@@ -29,16 +30,32 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     return;
   }
 
+  let logoUrl: string | undefined = undefined;
+
+  // Si se subió un archivo, procesarlo
+  if (req.file) {
+    try {
+      logoUrl = await uploadToCloudinary(req.file.buffer);
+    } catch (uploadError) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al subir el logo.' 
+      });
+      return;
+    }
+  }
+
   // Create user
   const user = await User.create({
     email,
     password,
   });
 
-  // Create business
+  // Create business with logoUrl if available
   const business = await Business.create({
     userId: user._id,
     ...businessData,
+    logoUrl: logoUrl,
   });
 
   // Generate token
@@ -46,8 +63,7 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     userId: user._id.toString(),
     businessId: business._id.toString(),
     email: user.email,
-      isAdmin: user.isAdmin,
-    
+    isAdmin: user.isAdmin,
   });
 
   const response: IApiResponse = {
@@ -66,6 +82,7 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
         category: business.category,
         currency: business.currency,
         timezone: business.timezone,
+        logoUrl: business.logoUrl,
         createdAt: business.createdAt,
       },
     },
@@ -112,7 +129,7 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
     userId: user._id.toString(),
     businessId: business._id.toString(),
     email: user.email,
-      isAdmin: user.isAdmin
+    isAdmin: user.isAdmin
   });
 
   const response: IApiResponse = {
@@ -131,6 +148,7 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
         category: business.category,
         currency: business.currency,
         timezone: business.timezone,
+        logoUrl: business.logoUrl,
         settings: business.settings,
         createdAt: business.createdAt,
       },
@@ -173,6 +191,7 @@ export const getProfile = asyncHandler(async (req: Request, res: Response): Prom
         taxId: business.taxId,
         currency: business.currency,
         timezone: business.timezone,
+        logoUrl: business.logoUrl,
         settings: business.settings,
         createdAt: business.createdAt,
         updatedAt: business.updatedAt,
@@ -186,10 +205,25 @@ export const getProfile = asyncHandler(async (req: Request, res: Response): Prom
 export const updateProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const userId = req.user?.userId;
   const { business: businessData } = req.body;
+  let updateData = { ...businessData };
+
+  // Handle logo upload if present
+  if (req.file) {
+    try {
+      const logoUrl = await uploadToCloudinary(req.file.buffer);
+      updateData.logoUrl = logoUrl;
+    } catch (uploadError) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al actualizar el logo.' 
+      });
+      return;
+    }
+  }
 
   const business = await Business.findOneAndUpdate(
     { userId },
-    businessData,
+    updateData,
     { new: true, runValidators: true }
   );
 
@@ -216,7 +250,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response): Pr
   const userId = req.user?.userId;
   const businessId = req.user?.businessId;
   const email = req.user?.email;
-    const isAdmin = req.user?.isAdmin;
+  const isAdmin = req.user?.isAdmin;
 
   if (!userId || !businessId || !email) {
     res.status(401).json({
@@ -230,8 +264,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response): Pr
     userId,
     businessId,
     email,
-       isAdmin: isAdmin || false
-
+    isAdmin: isAdmin || false
   });
 
   const response: IApiResponse = {

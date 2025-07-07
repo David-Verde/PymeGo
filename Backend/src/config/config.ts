@@ -25,11 +25,19 @@ interface Config {
     maxFileSize: number;
     path: string;
   };
+  cloudinary: {
+    cloudName: string;
+    apiKey: string;
+    apiSecret: string;
+  };
 }
 
 const requiredEnvVars = [
   'MONGODB_URI',
-  'JWT_SECRET'
+  'JWT_SECRET',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET'
 ];
 
 // Validate required environment variables
@@ -65,6 +73,11 @@ export const config: Config = {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10),
     path: process.env.UPLOAD_PATH || 'uploads/',
   },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+    apiKey: process.env.CLOUDINARY_API_KEY!,
+    apiSecret: process.env.CLOUDINARY_API_SECRET!,
+  }
 };
 
 export const isDevelopment = config.server.environment === 'development';

@@ -3,9 +3,9 @@ import { Product } from '../models/Product';
 import { asyncHandler } from '../middleware/errorHandler';
 import { IApiResponse, ICreateProductRequest, IPagination } from '../types';
 
-export const createProduct = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+export const createProduct = asyncHandler(async (req: Request<{}, any, ICreateProductRequest>, res: Response): Promise<void> => {
   const businessId = req.user?.businessId;
-  const productData: ICreateProductRequest = req.body;
+  const productData = req.body; // Ya no necesitas la anotación de tipo aquí
 
   const product = await Product.create({
     ...productData,

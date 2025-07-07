@@ -22,6 +22,7 @@ export interface IBusiness extends Document {
   taxId?: string;
   currency: string;
   timezone: string;
+  logoUrl?: string;
   settings: IBusinessSettings;
   createdAt: Date;
   updatedAt: Date;

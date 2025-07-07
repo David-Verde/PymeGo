@@ -36,12 +36,14 @@ import { authenticate } from '../middleware/auth';
 import { generalLimiter, authLimiter } from '../middleware/rateLimit';
 import { validate } from '../middleware/validation';
 import { body } from 'express-validator';
+import { upload } from '../middleware/upload';
 
 const router: RouterType = Router();
 
 // Auth Routes
 router.post('/auth/register', 
   authLimiter,
+  upload.single('logo'),
   validate([
     body('email').isEmail().withMessage('Please provide a valid email'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),

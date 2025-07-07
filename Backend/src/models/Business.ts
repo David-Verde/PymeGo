@@ -67,7 +67,7 @@ const businessSchema = new Schema<IBusiness>(
       type: String,
       trim: true,
       match: [
-        /^[\+]?[1-9][\d]{0,15}$/,
+        /^[\\+]?[1-9][\d]{0,15}$/,
         'Please provide a valid phone number'
       ],
     },
@@ -86,6 +86,10 @@ const businessSchema = new Schema<IBusiness>(
       type: String,
       required: [true, 'Timezone is required'],
       default: 'America/New_York',
+    },
+     logoUrl: {
+      type: String,
+      trim: true,
     },
     settings: {
       type: businessSettingsSchema,
