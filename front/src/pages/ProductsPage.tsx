@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 // Esquema de validación mejorado
 const productFormSchema = z.object({
@@ -38,6 +39,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<IProduct | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const form = useForm<ProductFormValues>({
@@ -60,42 +62,54 @@ export default function ProductsPage() {
     }
   }, [isDialogOpen, form]);
 
-  // Cargar datos del producto a editar
-  useEffect(() => {
-    if (editingProduct && isDialogOpen) {
-      form.reset({
-        name: editingProduct.name,
-        category: editingProduct.category,
-        costPrice: editingProduct.costPrice,
-        salePrice: editingProduct.salePrice,
-        stockQuantity: editingProduct.stockQuantity,
-        lowStockThreshold: editingProduct.lowStockThreshold,
-      });
+  const fetchProducts = async (page = 1) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get<IApiResponse<IProduct[]>>(
+        `/products?page=${page}&limit=10`
+      );
+      
+      if (response.data.success) {
+        setProducts(response.data.data || []);
+        setPagination(response.data.pagination || null);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      toast.error('No se pudieron cargar los productos');
+    } finally {
+      setLoading(false);
     }
-  }, [editingProduct, isDialogOpen, form]);
-
-const fetchProducts = async (page = 1) => {
-  setLoading(true);
-  try {
-    const response = await apiClient.get<IApiResponse<IProduct[]>>(
-      `/products?page=${page}&limit=10`
-    );
-    
-    if (response.data.success) {
-      setProducts(response.data.data || []);
-      setPagination(response.data.pagination || null);
-      setCurrentPage(page);
-    }
-  } catch (error) {
-    toast.error('No se pudieron cargar los productos');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleOpenCreateDialog = () => {
+    setEditingProduct(null);
+    form.reset({
+      name: '',
+      category: '',
+      costPrice: 0,
+      salePrice: 0,
+      stockQuantity: 0,
+      lowStockThreshold: 10,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (product: IProduct) => {
+    setEditingProduct(product);
+    form.reset({
+      name: product.name,
+      category: product.category,
+      costPrice: product.costPrice,
+      salePrice: product.salePrice,
+      stockQuantity: product.stockQuantity,
+      lowStockThreshold: product.lowStockThreshold,
+    });
+    setIsDialogOpen(true);
+  };
 
   const handleSubmit = async (values: ProductFormValues) => {
     try {
@@ -116,10 +130,12 @@ const fetchProducts = async (page = 1) => {
     }
   };
 
-  const handleDelete = async (productId: string) => {
+  const handleDelete = async () => {
+    if (!productToDelete) return;
     try {
-      await apiClient.delete(`/products/${productId}`);
+      await apiClient.delete(`/products/${productToDelete._id}`);
       toast.success('Producto eliminado correctamente');
+      setProductToDelete(null);
       fetchProducts(currentPage);
     } catch (error) {
       toast.error('No se pudo eliminar el producto');
@@ -134,7 +150,7 @@ const fetchProducts = async (page = 1) => {
             <h1 className="text-2xl font-bold">Productos</h1>
             <p className="text-muted-foreground">Gestiona tu inventario de productos</p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={handleOpenCreateDialog}>
             Crear Producto
           </Button>
         </div>
@@ -295,32 +311,52 @@ const fetchProducts = async (page = 1) => {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setEditingProduct(product);
-                                    setIsDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                             <DropdownMenuItem
-  className="text-red-600"
-  onClick={() => product._id && handleDelete(product._id)}
->
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <AlertDialog>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenEditDialog(product)}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        setProductToDelete(product);
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el producto "{productToDelete?.name}".
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setProductToDelete(null)}>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction onClick={handleDelete}>
+                                    Confirmar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))

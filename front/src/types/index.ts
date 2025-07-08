@@ -6,6 +6,15 @@ export interface IUser {
   updatedAt: string;
 }
 
+export interface IProductPerformance {
+  productId: string;
+  productName: string;
+  salesCount: number;
+  revenue: number;
+  profit: number; // (revenue - cost)
+  profitMargin: number; // (profit / revenue) * 100
+}
+
 export interface IBusinessSettings {
   lowStockAlert: boolean;
   lowStockThreshold: number;
