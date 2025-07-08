@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Product } from '../models/Product';
 import { asyncHandler } from '../middleware/errorHandler';
 import { IApiResponse, ICreateProductRequest, IPagination } from '../types';
@@ -170,7 +171,7 @@ export const getProductCategories = asyncHandler(async (req: Request, res: Respo
 });
 
 export const getLowStockProducts = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.user?.businessId;
+  const businessId = new mongoose.Types.ObjectId(req.user?.businessId);
 
   const products = await Product.find({
     businessId,

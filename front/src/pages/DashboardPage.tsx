@@ -181,14 +181,8 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [
-        summaryRes, 
-        salesRes, 
-        expensesRes, 
-        lowStockRes, 
-        performanceRes, 
-        cashFlowRes
-      ] = await Promise.all([
+      // Usar Promise.allSettled en lugar de Promise.all
+      const results = await Promise.allSettled([
         apiClient.get('/transactions/summary'),
         apiClient.get(`/transactions/sales-trends?period=${timePeriod}`),
         apiClient.get('/analytics/expenses'),
@@ -197,18 +191,25 @@ export default function DashboardPage() {
         apiClient.get('/analytics/cash-flow')
       ]);
 
-      setSummary(summaryRes.data.data);
-      setSalesTrends(salesRes.data.data);
-      setExpenseAnalysis(expensesRes.data.data);
-      setLowStockProducts(lowStockRes.data.data);
-      setProductPerformance(performanceRes.data.data);
-      setCashFlow(cashFlowRes.data.data);
+      // Procesar cada resultado individualmente
+      if (results[0].status === 'fulfilled') setSummary(results[0].value.data.data);
+      if (results[1].status === 'fulfilled') setSalesTrends(results[1].value.data.data);
+      if (results[2].status === 'fulfilled') setExpenseAnalysis(results[2].value.data.data);
+      if (results[3].status === 'fulfilled') setLowStockProducts(results[3].value.data.data);
+      if (results[4].status === 'fulfilled') setProductPerformance(results[4].value.data.data);
+      if (results[5].status === 'fulfilled') setCashFlow(results[5].value.data.data);
+
+      // Mostrar errores individuales si los hay
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`Error en la petición ${index}:`, result.reason);
+          toast.error(`Error al cargar una parte del dashboard.`);
+        }
+      });
 
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast.error("Error al cargar el Dashboard", {
-        description: "No se pudieron obtener los datos. Intenta de nuevo más tarde."
-      });
+      console.error("Error general fetching dashboard data:", error);
+      toast.error("Error inesperado al cargar el Dashboard.");
     } finally {
       setLoading(false);
     }
