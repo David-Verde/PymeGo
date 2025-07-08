@@ -103,25 +103,27 @@ const ExpenseAnalysisChart = ({ data }: { data: IExpenseAnalysis[] }) => {
 
 // Componente para Alertas de Stock Bajo
 const LowStockAlerts = ({ data }: { data: IProduct[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Alertas de Stock Bajo</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {data.length > 0 ? (
-        <ul className="space-y-2">
-          {data.map(product => (
-            <li key={product._id} className="flex justify-between items-center text-sm">
-              <span>{product.name}</span>
-              <span className="font-bold text-red-500">{product.stockQuantity} unidades</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">¡Todo el inventario está en orden!</p>
-      )}
-    </CardContent>
-  </Card>
+  <div className="lg:col-span-3">
+    <Card>
+      <CardHeader>
+        <CardTitle>Alertas de Stock Bajo</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data && data.length > 0 ? (
+          <ul className="space-y-2">
+            {data.map(product => (
+              <li key={product._id} className="flex justify-between items-center text-sm">
+                <span>{product.name}</span>
+                <span className="font-bold text-red-500">{product.stockQuantity} unidades</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">¡Todo el inventario está en orden!</p>
+        )}
+      </CardContent>
+    </Card>
+  </div>
 );
 
 // Componente para Rendimiento de Productos
@@ -130,10 +132,10 @@ const ProductPerformanceChart = ({ data }: { data: IProductPerformance[] }) => (
     <CardHeader><CardTitle>Productos Más Rentables</CardTitle></CardHeader>
     <CardContent>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} layout="vertical">
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" />
-          <YAxis type="category" dataKey="productName" width={80} />
+          <YAxis type="category" dataKey="productName" width={100} interval={0} />
           <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
           <Legend />
           <Bar dataKey="revenue" name="Ingresos" fill="#8884d8" />
@@ -259,9 +261,7 @@ export default function DashboardPage() {
             </Card>
           </div>
           
-          <div className="lg:col-span-3">
-            <LowStockAlerts data={lowStockProducts} />
-          </div>
+          <LowStockAlerts data={lowStockProducts} />
         </div>
         
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
